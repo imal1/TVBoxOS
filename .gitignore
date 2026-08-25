@@ -99,3 +99,6 @@ lint/tmp/
 *.hprof
 *.md
 output-metadata.json
+!CLAUDE.md
+!CONTEXT.md
+!docs/**/*.md
