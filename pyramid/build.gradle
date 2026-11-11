@@ -4,20 +4,26 @@ plugins {
 }
 
 android {
-    compileSdk 33
+    namespace 'com.undcover.freedom.pyramid'
+    compileSdk 35
 
     defaultConfig {
-        minSdkVersion 19
+        minSdkVersion 24
         targetSdkVersion 28
         python {
-            // 可用 -Ppyramid.buildPython=<python3.8 路径> 或在 gradle.properties 中覆盖
-            buildPython(project.findProperty("pyramid.buildPython") ?: "D:/Programs/Python/Python38/python.exe")
+            version "3.10"
+            // 未设置时 chaquopy 自动查找（Windows: py -3.10，其他: python3.10）；
+            // 也可用 -Ppyramid.buildPython=<python3.10 路径> 或在 gradle.properties 中指定
+            def customBuildPython = project.findProperty("pyramid.buildPython")
+            if (customBuildPython) {
+                buildPython(customBuildPython)
+            }
             pip {
                 install "lxml"
                 install "ujson"
                 install "pyquery==2.0.2"
                 install "requests"
-                install "jsonpath"
+                // jsonpath 在 PyPI 上只有源码包，chaquopy 15+ 只装 wheel，故以单文件形式内置于 src/python/jsonpath.py（0.82.2，MIT）
                 install "cachetools"
                 install 'pycryptodome'
                 install 'beautifulsoup4'
@@ -56,7 +62,6 @@ android {
             python.srcDirs = ["src/python"]
         }
     }
-    buildToolsVersion '30.0.3'
 }
 
 dependencies {
