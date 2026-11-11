@@ -66,7 +66,6 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.xwalk.core.XWalkView;
 
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -2034,7 +2033,7 @@ public class VodController extends BaseController {
         return url;
     }
 
-    public void evaluateScript(SourceBean sourceBean,String url, WebView web_view, XWalkView xWalk_view){
+    public void evaluateScript(SourceBean sourceBean,String url, WebView web_view){
         String clickSelector = sourceBean.getClickSelector().trim();
         clickSelector=clickSelector.isEmpty()?VideoParseRuler.getHostScript(url):clickSelector;
         if (!clickSelector.isEmpty()) {
@@ -2059,10 +2058,6 @@ public class VodController extends BaseController {
                 } else {
                     web_view.loadUrl("javascript:" + js);
                 }
-            }
-            if(xWalk_view!=null){
-                //4.0+开始全部支持这种写法
-                xWalk_view.evaluateJavascript(js, null);
             }
         }
     }

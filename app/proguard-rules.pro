@@ -126,8 +126,6 @@
     void *(**On*Event);
     void *(**On*Listener);
 }
-#xwalk
--keep class org.xwalk.core.** { *; }
 -keep class org.crosswalk.engine.** { *; }
 -keep class org.chromium.** { *; }
 -dontwarn android.view.**
