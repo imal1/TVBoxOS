@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace 'com.undcover.freedom.pyramid'
-    compileSdk 35
+    compileSdk 37
 
     defaultConfig {
         minSdkVersion 24

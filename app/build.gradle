@@ -1,9 +1,8 @@
 apply plugin: 'com.android.application'
-apply plugin: 'org.jetbrains.kotlin.android'
 
 android {
     namespace 'com.github.tvbox.osc'
-    compileSdk 35
+    compileSdk 37
 
     defaultConfig {
         applicationId 'com.github.tvbox.osc.jun'
@@ -77,22 +76,9 @@ android {
         }
     }
 
-    applicationVariants.configureEach { variant ->
-        variant.outputs.configureEach { output ->
-            def flavorNames = variant.productFlavors.collect { it.name }.join('-')
-            // 构建自定义文件名
-            def fileName = "TVBox_${variant.buildType.name}-${flavorNames}.apk"
-            outputFileName = fileName
-        }
-    }
-
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     buildFeatures {
@@ -170,7 +156,22 @@ dependencies {
     //支持http3
     implementation ('com.google.net.cronet:cronet-okhttp:0.1.0')
 //    implementation 'com.google.android.gms:play-services-cronet:18.0.1'
-    implementation ('org.chromium.net:cronet-embedded:101.4951.41')
+    implementation ('org.chromium.net:cronet-embedded:143.7445.0')
     implementation 'org.brotli:dec:0.1.2'
+
 }
 
+// AGP 9 移除了旧 Variant API（applicationVariants / outputFileName），
+// 改为在 assemble 完成后把 APK 复制为原来的命名：build/outputs/tvbox/TVBox_<buildType>-<flavor>.apk
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def taskSuffix = variant.name.capitalize()
+        def copyApk = tasks.register("copy${taskSuffix}TvboxApk", Copy) {
+            from(variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.APK.INSTANCE))
+            include('*.apk')
+            into(layout.buildDirectory.dir('outputs/tvbox'))
+            rename { "TVBox_${variant.buildType}-${variant.flavorName}.apk" }
+        }
+        tasks.matching { it.name == "assemble${taskSuffix}" }.configureEach { finalizedBy(copyApk) }
+    }
+}
