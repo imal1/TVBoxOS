@@ -59,6 +59,8 @@ public class JsLoader {
             File cacheDir = new File(App.getInstance().getCacheDir().getAbsolutePath() + "/catvod_jsapi");
             if (!cacheDir.exists())
                 cacheDir.mkdirs();
+            // targetSdk 34 起，动态加载的 jar 必须只读，否则抛 SecurityException
+            new File(jar).setReadOnly();
             DexClassLoader classLoader = new DexClassLoader(jar, cacheDir.getAbsolutePath(), null, App.getInstance().getClassLoader());
             int count = 0;
             do {
@@ -114,6 +116,9 @@ public class JsLoader {
         try {
             Response response = OkGo.<File>get(jar).execute();
             InputStream is = response.body().byteStream();
+            // 旧文件已被设为只读，需先删除再写入
+            if (cache.exists()) cache.delete();
+            if (cache.getParentFile() != null) cache.getParentFile().mkdirs();
             OutputStream os = new FileOutputStream(cache);
             try {
                 byte[] buffer = new byte[2048];
