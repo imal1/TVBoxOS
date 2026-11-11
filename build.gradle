@@ -8,10 +8,6 @@ buildscript {
         maven { url "https://maven.aliyun.com/repository/public" }
         maven { url "https://maven.aliyun.com/repository/releases" }
         maven { url "https://storage.googleapis.com/r8-releases/raw" }
-        maven {
-            url "http://4thline.org/m2"
-            allowInsecureProtocol = true
-        }
         maven { url "https://chaquo.com/maven" }
     }
     dependencies {
@@ -25,12 +21,18 @@ buildscript {
 
 allprojects {
     repositories {
+        // cling / seamless 的官方仓库 4thline.org 已下线，改用仓库内从源码构建的本地副本（见 third_party/m2/README.txt）
+        exclusiveContent {
+            forRepository {
+                maven { url "$rootDir/third_party/m2" }
+            }
+            filter {
+                includeGroup "org.fourthline.cling"
+                includeGroup "org.seamless"
+            }
+        }
         google()
         mavenCentral()
-        maven {
-            url "http://4thline.org/m2"
-            allowInsecureProtocol = true
-        }
         maven { url "https://jitpack.io" }
         maven { url "https://maven.aliyun.com/repository/public" }
         maven { url "https://maven.aliyun.com/repository/releases" }
