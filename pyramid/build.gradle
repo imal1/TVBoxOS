@@ -10,7 +10,8 @@ android {
         minSdkVersion 19
         targetSdkVersion 28
         python {
-            buildPython("D:/Programs/Python/Python38/python.exe")
+            // 可用 -Ppyramid.buildPython=<python3.8 路径> 或在 gradle.properties 中覆盖
+            buildPython(project.findProperty("pyramid.buildPython") ?: "D:/Programs/Python/Python38/python.exe")
             pip {
                 install "lxml"
                 install "ujson"
