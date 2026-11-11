@@ -53,6 +53,7 @@ import com.lzy.okgo.model.Response;
 import com.orhanobut.hawk.Hawk;
 import com.hjq.permissions.OnPermissionCallback;
 import com.hjq.permissions.Permission;
+import com.github.tvbox.osc.util.StoragePermission;
 import com.hjq.permissions.XXPermissions;
 
 import org.greenrobot.eventbus.EventBus;
@@ -914,10 +915,10 @@ public class ModelSettingFragment extends BaseLazyFragment {
 
     private void openLocalConfig(boolean live) {
         selectLocalLive = live;
-        if (!XXPermissions.isGranted(mContext, Permission.Group.STORAGE)) {
+        if (!XXPermissions.isGranted(mContext, StoragePermission.PERMISSION)) {
             Toast.makeText(getContext(), "请选择文件前需要先授予存储权限", Toast.LENGTH_SHORT).show();
             XXPermissions.with(mActivity)
-                    .permission(Permission.Group.STORAGE)
+                    .permission(StoragePermission.PERMISSION)
                     .request(new OnPermissionCallback() {
                         @Override
                         public void onGranted(List<String> permissions, boolean all) {

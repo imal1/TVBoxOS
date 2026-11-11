@@ -7,7 +7,8 @@ android {
 
     defaultConfig {
         applicationId 'com.github.tvbox.osc.jun'
-        targetSdkVersion 28
+        minSdkVersion 33
+        targetSdkVersion 34
         versionCode 1
         versionName '1.0.0'
         multiDexEnabled true
@@ -20,8 +21,12 @@ android {
     }
 
     packaging {
-        // 与 AGP 7 一致压缩 so；AGP 8 在 minSdk>=23 时默认不压缩，APK 会显著变大
+        // 与 AGP 7 一致压缩 so 与 dex；AGP 8 在 minSdk>=23 / >=28 时默认不压缩，APK 会显著变大
+        // （不压缩时下载更大，但安装时无需解压，占用设备空间更少、启动更快，可按需改为 false）
         jniLibs {
+            useLegacyPackaging true
+        }
+        dex {
             useLegacyPackaging true
         }
         resources {
@@ -33,7 +38,6 @@ android {
     productFlavors {
         java64 {
             dimension "mode"
-            minSdkVersion 21
             ndk {
                 abiFilters 'arm64-v8a'
             }
@@ -41,7 +45,6 @@ android {
         }
         python64 {
             dimension "mode"
-            minSdkVersion 24
             ndk {
                 abiFilters 'arm64-v8a'
             }
