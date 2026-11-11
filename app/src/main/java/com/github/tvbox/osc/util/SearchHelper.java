@@ -1,18 +1,30 @@
 package com.github.tvbox.osc.util;
 
 import com.github.tvbox.osc.api.ApiConfig;
+import com.github.tvbox.osc.bean.Movie;
 import com.github.tvbox.osc.bean.SourceBean;
 import com.github.tvbox.osc.ui.activity.SearchActivity;
 import com.orhanobut.hawk.Hawk;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
-import java.util.Iterator;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SearchHelper {
+
+    private static final Pattern SEASON_SUFFIX_PATTERN = Pattern.compile(
+            "^(.*?)[\\s._-]*(?:(第\\s*)?([0-9]{1,2}|[零一二三四五六七八九十百千万两]+)(\\s*季)|([0-9]{1,2}))$");
+
+    private static final String[] CHINESE_NUMBERS = {
+            "零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十",
+            "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十"
+    };
 
     public static HashMap<String, String> getSourcesForSearch() {
         HashMap<String, String> mCheckSources;
@@ -77,14 +89,79 @@ public class SearchHelper {
         return mCheckSources;
     }
 
+    public static List<Movie.Video> sortSearchResults(List<Movie.Video> videos, String searchTitle) {
+        List<Movie.Video> results = new ArrayList<>(videos);
+        final String keyword = normalizeSearchText(searchTitle);
+        if (keyword.isEmpty() || results.size() < 2) return results;
+        final HashMap<Movie.Video, Integer> scores = new HashMap<>();
+        for (Movie.Video video : results) {
+            String name = normalizeSearchText(video == null ? null : video.name);
+            int score = name.equals(keyword) ? 3 : name.startsWith(keyword) ? 2 : name.contains(keyword) ? 1 : 0;
+            scores.put(video, score);
+        }
+        // 稳定排序仅调整当前站点内的顺序，所有结果均保留。
+        Collections.sort(results, new Comparator<Movie.Video>() {
+            @Override
+            public int compare(Movie.Video left, Movie.Video right) {
+                return scores.get(right) - scores.get(left);
+            }
+        });
+        return results;
+    }
+
+    private static String normalizeSearchText(String text) {
+        return text == null ? "" : text.replaceAll("\\s+", "").toLowerCase(Locale.ROOT);
+    }
+
     public static List<String> splitWords(String text) {
         List<String> result = new ArrayList<>();
+        if (text == null || text.trim().isEmpty()) {
+            return result;
+        }
         result.add(text);
         String[] parts = text.split("\\W+");
         if (parts.length > 1) {
             result.addAll(Arrays.asList(parts));
         }
+        Matcher matcher = SEASON_SUFFIX_PATTERN.matcher(text.trim());
+        if (matcher.matches()) {
+            String baseName = matcher.group(1).trim();
+            if (!baseName.isEmpty()
+                    && !Character.isDigit(baseName.charAt(baseName.length() - 1))
+                    && !result.contains(baseName)) {
+                result.add(baseName);
+            }
+            String season = matcher.group(3) == null ? matcher.group(5) : matcher.group(3);
+            if (!baseName.isEmpty() && season != null) {
+                String nextSeason = nextSeason(season);
+                if (nextSeason != null) {
+                    String prefix = matcher.group(3) == null || matcher.group(2) == null ? "" : matcher.group(2);
+                    String suffix = matcher.group(3) == null || matcher.group(4) == null ? "" : matcher.group(4);
+                    String nextTitle = baseName + prefix + nextSeason + suffix;
+                    if (!result.contains(nextTitle)) {
+                        result.add(nextTitle);
+                    }
+                }
+            }
+        }
         return result;
+    }
+
+    private static String nextSeason(String season) {
+        String value = season.trim();
+        try {
+            return String.valueOf(Integer.parseInt(value) + 1);
+        } catch (NumberFormatException ignored) {
+            if ("两".equals(value)) {
+                return "三";
+            }
+            for (int i = 0; i < CHINESE_NUMBERS.length - 1; i++) {
+                if (CHINESE_NUMBERS[i].equals(value)) {
+                    return CHINESE_NUMBERS[i + 1];
+                }
+            }
+            return null;
+        }
     }
 
 }

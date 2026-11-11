@@ -98,7 +98,9 @@ lint/tmp/
 
 *.hprof
 *.md
+.temp/
 output-metadata.json
+.py/
 !CLAUDE.md
 !CONTEXT.md
 !docs/**/*.md

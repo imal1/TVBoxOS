@@ -118,7 +118,7 @@ public class ImgUtil {
             return;
         }
         RequestOptions options = new RequestOptions()
-                .format(DecodeFormat.PREFER_RGB_565)
+                .format(DecodeFormat.PREFER_ARGB_8888)
                 .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                 .dontAnimate()
                 .transform(new FitCenter(), new RoundedCorners(roundingRadius));
@@ -284,6 +284,10 @@ public class ImgUtil {
         if (!TextUtils.isEmpty(referer)) putHeader(headers, "Referer", referer);
         for (Map.Entry<String, String> entry : headers.entrySet()) builder.setHeader(entry.getKey(), entry.getValue());
         return new GlideUrl(url, builder.build());
+    }
+
+    public static Object getImageModel(String url) {
+        return getUrl(url);
     }
 
     private static boolean isInvalidImageUrl(String url) {

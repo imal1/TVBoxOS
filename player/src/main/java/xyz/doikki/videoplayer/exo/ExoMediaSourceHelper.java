@@ -95,7 +95,8 @@ public final class ExoMediaSourceHelper {
                 return new DashMediaSource.Factory(factory).createMediaSource(MediaItem.fromUri(contentUri));
             case C.TYPE_HLS:
                 return new HlsMediaSource.Factory(factory)
-                        .setLoadErrorHandlingPolicy(new HlsErrorHandlingPolicy())  // 设置自定义错误处理策略，跳过坏的切片
+                        .setExtractorFactory(new ResyncHlsExtractorFactory())
+                        .setLoadErrorHandlingPolicy(new HlsErrorHandlingPolicy())  // 切片快速重试并兼容TS同步异常，保留默认回退
                         .createMediaSource(MediaItem.fromUri(contentUri));
             default:
             case C.TYPE_OTHER:
@@ -137,6 +138,9 @@ public final class ExoMediaSourceHelper {
     }
 
     private boolean isHlsUri(String uri) {
+        if (isAudioUri(uri)) {
+            return false;
+        }
         if (uri.contains("m3u8") || uri.contains("type=hls") || uri.contains("format=hls")) {
             return true;
         }
@@ -147,6 +151,23 @@ public final class ExoMediaSourceHelper {
         }
         path = path.toLowerCase();
         return path.endsWith("/live.php") || path.contains("/live/");
+    }
+
+    private boolean isAudioUri(String uri) {
+        Uri parsedUri = Uri.parse(uri);
+        String path = parsedUri.getPath();
+        if (path == null) {
+            path = uri;
+        }
+        path = path.toLowerCase();
+        return path.endsWith(".mp3")
+                || path.endsWith(".m4a")
+                || path.endsWith(".aac")
+                || path.endsWith(".flac")
+                || path.endsWith(".wav")
+                || path.endsWith(".ogg")
+                || path.endsWith(".opus")
+                || path.endsWith(".amr");
     }
 
     private DataSource.Factory getCacheDataSourceFactory() {
