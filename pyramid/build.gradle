@@ -26,18 +26,6 @@ android {
 
     flavorDimensions "mode"
     productFlavors {
-        python {
-            dimension "mode"
-            ndk {
-                abiFilters "armeabi-v7a", "arm64-v8a"
-            }
-        }
-        python32 {
-            dimension "mode"
-            ndk {
-                abiFilters "armeabi-v7a"
-            }
-        }
         python64 {
             dimension "mode"
             ndk {
