@@ -18,6 +18,10 @@
         <!--        <item name="android:windowBackground">@drawable/main_bg</item>-->
         <item name="android:windowBackground">@android:color/transparent</item>
     </style>
+    <!-- Compose 界面：暗色窗口背景，避免启动与切屏时的白闪 -->
+    <style name="AppTheme.Compose" parent="AppTheme.NoActionBar">
+        <item name="android:windowBackground">@color/tv_background</item>
+    </style>
     <!-- 自定义dialog样式 -->
     <style name="CustomDialogStyle" parent="@android:style/Theme.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>

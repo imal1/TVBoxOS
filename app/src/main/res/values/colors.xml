@@ -53,4 +53,6 @@
 
 
 
+    <!-- 与 TvTokens.Colors.background 保持一致 -->
+    <color name="tv_background">#FF0B0B0F</color>
 </resources>
