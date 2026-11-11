@@ -1,7 +1,12 @@
 package com.github.tvbox.osc.compose.components
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -45,6 +51,12 @@ data class PosterItem(
     val title: String,
     val subtitle: String? = null,
     val imageUrl: String? = null,
+    /** hero 区展示的元信息，如「2024 · 大陆 · 剧情」。 */
+    val meta: String? = null,
+    val description: String? = null,
+    /** 打开详情所需：所属数据源与影片 id。 */
+    val sourceKey: String? = null,
+    val vodId: String? = null,
 )
 
 /**
@@ -57,6 +69,8 @@ fun Shelf(
     items: List<PosterItem>,
     onItemClick: (PosterItem) -> Unit,
     modifier: Modifier = Modifier,
+    onItemFocused: (PosterItem) -> Unit = {},
+    loading: Boolean = false,
 ) {
     var focusedIndex by remember { mutableStateOf(-1) }
     Column(modifier = modifier.fillMaxWidth()) {
@@ -75,15 +89,24 @@ fun Shelf(
             ),
             horizontalArrangement = Arrangement.spacedBy(TvTokens.Spacing.cardGap),
         ) {
-            itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
-                PosterCard(
-                    item = item,
-                    dimmed = focusedIndex >= 0 && focusedIndex != index,
-                    onFocusChanged = { focused ->
-                        if (focused) focusedIndex = index else if (focusedIndex == index) focusedIndex = -1
-                    },
-                    onClick = { onItemClick(item) },
-                )
+            if (loading) {
+                items(SKELETON_COUNT) { SkeletonCard() }
+            } else {
+                itemsIndexed(items, key = { _, item -> item.id }) { index, item ->
+                    PosterCard(
+                        item = item,
+                        dimmed = focusedIndex >= 0 && focusedIndex != index,
+                        onFocusChanged = { focused ->
+                            if (focused) {
+                                focusedIndex = index
+                                onItemFocused(item)
+                            } else if (focusedIndex == index) {
+                                focusedIndex = -1
+                            }
+                        },
+                        onClick = { onItemClick(item) },
+                    )
+                }
             }
         }
     }
@@ -130,14 +153,7 @@ fun PosterCard(
             ),
         contentAlignment = Alignment.BottomStart,
     ) {
-        if (item.imageUrl != null) {
-            AsyncImage(
-                model = item.imageUrl,
-                contentDescription = item.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
+        PosterImage(url = item.imageUrl, title = item.title, modifier = Modifier.fillMaxSize())
         // 底部渐变 + 标题，保证任意海报上标题都可读
         Box(
             modifier = Modifier
@@ -163,6 +179,52 @@ fun PosterCard(
                     )
                 }
             }
+        }
+    }
+}
+
+private const val SKELETON_COUNT = 8
+
+/** 加载中的占位卡片。 */
+@Composable
+private fun SkeletonCard() {
+    val transition = rememberInfiniteTransition(label = "skeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.75f,
+        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+        label = "skeletonAlpha",
+    )
+    Box(
+        modifier = Modifier
+            .size(TvTokens.Poster.width, TvTokens.Poster.height)
+            .graphicsLayer { this.alpha = alpha }
+            .clip(RoundedCornerShape(TvTokens.Radius.card))
+            .background(TvTokens.Colors.placeholder),
+    )
+}
+
+/**
+ * 海报图：加载中显示占位底色，无图或加载失败时显示片名首字，保证不出现空白。
+ */
+@Composable
+fun PosterImage(url: String?, title: String, modifier: Modifier = Modifier) {
+    var failed by remember(url) { mutableStateOf(url.isNullOrBlank()) }
+    Box(modifier = modifier.background(TvTokens.Colors.placeholder), contentAlignment = Alignment.Center) {
+        if (failed) {
+            Text(
+                text = title.trim().take(1).ifEmpty { "?" },
+                style = MaterialTheme.typography.displayLarge,
+                color = TvTokens.Colors.onBackgroundTertiary,
+            )
+        } else {
+            AsyncImage(
+                model = url,
+                contentDescription = title,
+                contentScale = ContentScale.Crop,
+                onError = { failed = true },
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }

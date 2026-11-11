@@ -7,7 +7,7 @@ from fontTools.fontBuilder import FontBuilder
 import cffsubr
 
 src, dst = sys.argv[1], sys.argv[2]
-f = TTFont(src)
+f = TTFont(src, recalcTimestamp=False)
 order = f.getGlyphOrder()
 gs = f.getGlyphSet()
 hmtx = f['hmtx'].metrics
@@ -23,6 +23,7 @@ fb = FontBuilder(f['head'].unitsPerEm, isTTF=False)
 fb.setupGlyphOrder(order)
 fb.setupCFF(ps, {'FullName': name.getDebugName(4) or ps, 'FamilyName': name.getDebugName(1) or ps}, charstrings, {})
 out = fb.font
+out.recalcTimestamp = False
 for tag in ['head', 'hhea', 'hmtx', 'maxp', 'OS/2', 'name', 'cmap', 'post', 'GSUB', 'GPOS', 'GDEF', 'BASE', 'vhea', 'vmtx', 'VORG']:
     if tag in f and tag not in ('maxp', 'post'):
         out[tag] = f[tag]
