@@ -6,7 +6,6 @@ import android.animation.AnimatorSet;
 import android.animation.IntEvaluator;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -357,7 +356,6 @@ public class HomeActivity extends BaseActivity {
 
     private boolean dataInitOk = false;
     private boolean jarInitOk = false;
-    private boolean searchSpiderWarmStarted = false;
     private TipDialog mConfigErrorDialog;
 
     private void initData() {
@@ -371,8 +369,6 @@ public class HomeActivity extends BaseActivity {
             if (!useCacheConfig && Hawk.get(HawkConfig.DEFAULT_LOAD_LIVE, false)) {
                 jumpActivity(LivePlayActivity.class);
             }
-            //爬虫预热 仅首次加载
-            if(!useCacheConfig)warmSearchSpidersOnce();
             return;
         }
         tvNameAnimation();
@@ -507,12 +503,6 @@ public class HomeActivity extends BaseActivity {
                 });
             }
         }, this);
-    }
-
-    private void warmSearchSpidersOnce() {
-        if (searchSpiderWarmStarted) return;
-        searchSpiderWarmStarted = true;
-        ApiConfig.get().warmSearchSpiders();
     }
 
     private void loadHomeSort(boolean keepCurrentContent) {
@@ -659,21 +649,12 @@ public class HomeActivity extends BaseActivity {
     private void doExit() {
         // 如果两次返回间隔小于 2000 毫秒，则退出应用
         if (System.currentTimeMillis() - mExitTime < 2000) {
+            AppManager.getInstance().finishAllActivity();
             unregisterEventBus();
             ControlManager.get().stopServer();
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                ActivityManager activityManager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-                if (activityManager != null) {
-                    for (ActivityManager.AppTask appTask : activityManager.getAppTasks()) {
-                        appTask.finishAndRemoveTask();
-                    }
-                } else {
-                    finishAndRemoveTask();
-                }
-            } else {
-                AppManager.getInstance().finishAllActivity();
-                finish();
-            }
+            finish();
+            android.os.Process.killProcess(android.os.Process.myPid());
+            System.exit(0);
         } else {
             // 否则仅提示用户，再按一次退出应用
             mExitTime = System.currentTimeMillis();
