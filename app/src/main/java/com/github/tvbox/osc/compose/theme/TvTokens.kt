@@ -58,6 +58,16 @@ object TvTokens {
         val height = 258.dp               // 2:3 竖版海报
     }
 
+    object Hero {
+        val height = 248.dp
+        val posterWidth = 124.dp
+        val posterHeight = 186.dp
+        val textMaxWidth = 640.dp
+        const val backdropScale = 1.25f   // 背景海报放大倍率
+        const val backdropAlpha = 0.55f
+        val backdropBlur = 48.dp          // 背景模糊半径
+    }
+
     object Focus {
         const val cardScale = 1.12f       // 获得焦点时的放大倍率
         const val tabScale = 1.05f

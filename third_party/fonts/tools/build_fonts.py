@@ -46,12 +46,12 @@ def do_subset(font, chars, path):
     print(os.path.basename(path), os.path.getsize(path))
 
 for w, name in [(400, 'regular'), (500, 'medium'), (600, 'semibold')]:
-    vf = TTFont(os.path.join(src, 'NotoSansSC-VF.ttf'))
+    vf = TTFont(os.path.join(src, 'NotoSansSC-VF.ttf'), recalcTimestamp=False)
     inst = instancer.instantiateVariableFont(vf, {'wght': w}, updateFontNames=True)
     do_subset(inst, cjk, os.path.join(out, f'noto_sans_sc_{name}.ttf'))
 
 for w, name in [('Regular', 'regular'), ('Medium', 'medium'), ('SemiBold', 'semibold')]:
-    do_subset(TTFont(os.path.join(src, 'inter', f'Inter-{w}.ttf')), latin, os.path.join(out, f'inter_{name}.ttf'))
+    do_subset(TTFont(os.path.join(src, 'inter', f'Inter-{w}.ttf'), recalcTimestamp=False), latin, os.path.join(out, f'inter_{name}.ttf'))
 
 total = sum(os.path.getsize(p) for p in glob.glob(os.path.join(out, '*.ttf')))
 print('TOTAL', total)
