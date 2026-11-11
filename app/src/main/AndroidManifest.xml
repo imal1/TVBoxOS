@@ -93,6 +93,13 @@
             android:name=".ui.activity.TransferActivity"
             android:screenOrientation="sensorLandscape" />
 
+        <!-- 05 号票临时技术验证屏，入口：设置页长按「关于」 -->
+        <activity
+            android:name=".compose.lab.ComposeLabActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/AppTheme.NoActionBar" />
+
         <service
             android:name=".dlna.DLNACastService"
             android:exported="false" />

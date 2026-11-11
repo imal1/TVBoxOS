@@ -181,6 +181,11 @@ public class ModelSettingFragment extends BaseLazyFragment {
                 dialog.show();
             }
         });
+        // 临时入口：长按「关于」进入 Compose 技术验证屏（05 号票），06 号票后移除
+        findViewById(R.id.llAbout).setOnLongClickListener(v -> {
+            startActivity(new Intent(mActivity, com.github.tvbox.osc.compose.lab.ComposeLabActivity.class));
+            return true;
+        });
         findViewById(R.id.llAbout).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
