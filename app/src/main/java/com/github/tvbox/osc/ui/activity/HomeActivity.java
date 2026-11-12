@@ -45,7 +45,6 @@ import com.github.tvbox.osc.ui.adapter.SelectDialogAdapter;
 import com.github.tvbox.osc.ui.adapter.SortAdapter;
 import com.github.tvbox.osc.ui.dialog.SelectDialog;
 import com.github.tvbox.osc.ui.dialog.TipDialog;
-import com.github.tvbox.osc.ui.fragment.GridFragment;
 import com.github.tvbox.osc.ui.fragment.UserFragment;
 import com.github.tvbox.osc.ui.tv.widget.DefaultTransformer;
 import com.github.tvbox.osc.ui.tv.widget.FixedSpeedScroller;
@@ -243,9 +242,7 @@ public class HomeActivity extends BaseActivity {
             public void onItemClick(TvRecyclerView parent, View itemView, int position) {
                 if (itemView != null && currentSelected == position) {
                     BaseLazyFragment baseLazyFragment = fragments.get(currentSelected);
-                    if ((baseLazyFragment instanceof GridFragment) && !sortAdapter.getItem(position).filters.isEmpty()) {// 弹出筛选
-                        ((GridFragment) baseLazyFragment).showFilter();
-                    } else if (baseLazyFragment instanceof UserFragment) {
+                    if (baseLazyFragment instanceof UserFragment) {
                         showSiteSwitch();
                     }
                 }
@@ -260,19 +257,8 @@ public class HomeActivity extends BaseActivity {
                         refreshHomeSort();
                         return true;
                     }
-                    if (baseLazyFragment instanceof GridFragment) {
-                        ((GridFragment) baseLazyFragment).forceRefresh();
-                        return true;
-                    }
                 }
-                if (direction != View.FOCUS_DOWN) {
-                    return false;
-                }
-                BaseLazyFragment baseLazyFragment = fragments.get(sortFocused);
-                if (!(baseLazyFragment instanceof GridFragment)) {
-                    return false;
-                }
-                return !((GridFragment) baseLazyFragment).isLoad();
+                return false;
             }
         });
         tvName.setOnClickListener(new View.OnClickListener() {
@@ -337,12 +323,9 @@ public class HomeActivity extends BaseActivity {
                 SourceBean home = ApiConfig.get().getHomeSourceBean();
                 showSuccess();
                 clearHomePages();
-                List<MovieSort.SortData> newSortData;
-                if (absXml != null && absXml.classes != null && absXml.classes.sortList != null) {
-                    newSortData = DefaultConfig.adjustSort(ApiConfig.get().getHomeSourceBean().getKey(), absXml.classes.sortList, true);
-                } else {
-                    newSortData = DefaultConfig.adjustSort(ApiConfig.get().getHomeSourceBean().getKey(), new ArrayList<>(), true);
-                }
+                // 分类浏览已迁到 Compose「影视」tab，旧首页只保留「主页」，tab 与 fragment 一一对应
+                List<MovieSort.SortData> newSortData = new ArrayList<>();
+                newSortData.add(new MovieSort.SortData("my0", "主页"));
                 updateSortData(newSortData);
                 initViewPager(absXml);
                 updateHomeRec(absXml);
@@ -537,8 +520,6 @@ public class HomeActivity extends BaseActivity {
                     } else {
                         fragments.add(UserFragment.newInstance(null));
                     }
-                } else {
-                    fragments.add(GridFragment.newInstance(data));
                 }
             }
             pageAdapter = new HomePageAdapter(getSupportFragmentManager(), fragments);
@@ -623,23 +604,7 @@ public class HomeActivity extends BaseActivity {
         }
 
         BaseLazyFragment baseLazyFragment = this.fragments.get(this.sortFocused);
-        if (baseLazyFragment instanceof GridFragment) {
-            GridFragment grid = (GridFragment) baseLazyFragment;
-            // 如果当前 Fragment 能恢复之前保存的 UI 状态，则直接返回
-            if (grid.restoreView()) {
-                return;
-            }
-            // 如果 sortFocusView 存在且没有获取焦点，则请求焦点
-            if (this.sortFocusView != null && !this.sortFocusView.isFocused()) {
-                this.sortFocusView.requestFocus();
-            }
-            // 如果当前不是第一个界面，则将列表设置到第一项
-            else if (this.sortFocused != 0) {
-                this.mGridView.setSelection(0);
-            } else {
-                doExit();
-            }
-        } else if (baseLazyFragment instanceof UserFragment && UserFragment.tvHotList.canScrollVertically(-1)) {
+        if (baseLazyFragment instanceof UserFragment && UserFragment.tvHotList.canScrollVertically(-1)) {
             // 如果 UserFragment 列表可以向上滚动，则滚动到顶部
             UserFragment.tvHotList.scrollToPosition(0);
             this.mGridView.setSelection(0);
@@ -649,19 +614,9 @@ public class HomeActivity extends BaseActivity {
     }
 
     private void doExit() {
-        // 如果两次返回间隔小于 2000 毫秒，则退出应用
-        if (System.currentTimeMillis() - mExitTime < 2000) {
-            AppManager.getInstance().finishAllActivity();
-            unregisterEventBus();
-            ControlManager.get().stopServer();
-            finish();
-            android.os.Process.killProcess(android.os.Process.myPid());
-            System.exit(0);
-        } else {
-            // 否则仅提示用户，再按一次退出应用
-            mExitTime = System.currentTimeMillis();
-            Toast.makeText(mContext, "再按一次返回键退出应用", Toast.LENGTH_SHORT).show();
-        }
+        // 旧首页现在是从 Compose 主界面打开的子页面：返回即关闭本页，回到新界面，
+        // 不再结束全部页面、停止局域网服务或杀进程
+        finish();
     }
 
     @Override
@@ -727,11 +682,6 @@ public class HomeActivity extends BaseActivity {
                     currentSelected = sortFocused;
                     mViewPager.setCurrentItem(sortFocused, false);
                     changeTop(sortFocused != 0);
-                    if (baseLazyFragment instanceof GridFragment && ((GridFragment) baseLazyFragment).shouldReloadOnSelect()) {
-                        ((GridFragment) baseLazyFragment).forceRefresh();
-                    }
-                } else if (baseLazyFragment instanceof GridFragment && ((GridFragment) baseLazyFragment).shouldReloadOnSelect()) {
-                    ((GridFragment) baseLazyFragment).forceRefresh();
                 }
             }
         }
@@ -816,9 +766,7 @@ public class HomeActivity extends BaseActivity {
         mHandler.removeCallbacksAndMessages(null);
         super.onDestroy();
         unregisterEventBus();
-        if (isFinishing()) {
-            ControlManager.get().stopServer();
-        }
+        // 局域网服务由 Compose 主界面（MainActivity）负责启停
     }
 
     private void unregisterEventBus() {

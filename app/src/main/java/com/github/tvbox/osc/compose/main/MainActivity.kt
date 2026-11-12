@@ -43,6 +43,7 @@ import com.github.tvbox.osc.compose.components.PosterItem
 import com.github.tvbox.osc.compose.detail.DetailScreen
 import com.github.tvbox.osc.compose.home.HomeTab
 import com.github.tvbox.osc.compose.image.newTvImageLoader
+import com.github.tvbox.osc.compose.movies.MoviesTab
 import com.github.tvbox.osc.compose.nav.AppRoutes
 import com.github.tvbox.osc.compose.nav.LegacyNavigator
 import com.github.tvbox.osc.compose.theme.TvTheme
@@ -67,6 +68,11 @@ class MainActivity : ComponentActivity() {
                 AppNavHost(onExit = { finish() })
             }
         }
+    }
+
+    override fun onDestroy() {
+        if (isFinishing) ControlManager.get().stopServer()
+        super.onDestroy()
     }
 }
 
@@ -116,6 +122,7 @@ private fun AppNavHost(onExit: () -> Unit) {
 
 private val Tabs = listOf("首页", "影视", "直播", "搜索", "我的")
 private const val TAB_HOME = 0
+private const val TAB_MOVIES = 1
 private const val TAB_MINE = 4
 
 @Composable
@@ -129,6 +136,14 @@ private fun MainScreen(onExit: () -> Unit, onOpenDetail: (PosterItem) -> Unit) {
     // 从详情页返回时，焦点回到进入前的卡片
     var restoreFocusKey by rememberSaveable { mutableStateOf<String?>(null) }
     val openLegacy = { LegacyNavigator.openLegacyHome(context) }
+    val openItem: (PosterItem) -> Unit = { item ->
+        if (LegacyNavigator.hasDetail(item)) {
+            restoreFocusKey = item.id
+            onOpenDetail(item)
+        } else {
+            LegacyNavigator.search(context, item.title)
+        }
+    }
 
     // tvOS 习惯：内容区按返回先回到 tab bar，在 tab bar 上再按返回才退出
     BackHandler {
@@ -148,14 +163,13 @@ private fun MainScreen(onExit: () -> Unit, onOpenDetail: (PosterItem) -> Unit) {
             tabStateHolder.SaveableStateProvider(selectedTab) {
                 when (selectedTab) {
                     TAB_HOME -> HomeTab(
-                        onOpenItem = { item ->
-                            if (LegacyNavigator.hasDetail(item)) {
-                                restoreFocusKey = item.id
-                                onOpenDetail(item)
-                            } else {
-                                LegacyNavigator.search(context, item.title)
-                            }
-                        },
+                        onOpenItem = openItem,
+                        onOpenLegacy = openLegacy,
+                        restoreFocusKey = restoreFocusKey,
+                        onFocusRestored = { restoreFocusKey = null },
+                    )
+                    TAB_MOVIES -> MoviesTab(
+                        onOpenItem = openItem,
                         onOpenLegacy = openLegacy,
                         restoreFocusKey = restoreFocusKey,
                         onFocusRestored = { restoreFocusKey = null },

@@ -76,6 +76,12 @@ object LegacySources {
         return awaitFirst(viewModel.sortResult) { viewModel.getSort(homeSourceKey()) }
     }
 
+    /** 某个分类指定页的影片（含 page / pagecount）；失败或超时返回 null。 */
+    suspend fun categoryPage(sort: MovieSort.SortData, page: Int): Movie? {
+        val viewModel = SourceViewModel()
+        return awaitFirst(viewModel.listResult) { viewModel.getList(sort, page) }?.movie
+    }
+
     /** 某个分类第一页的影片。 */
     suspend fun categoryVideos(sort: MovieSort.SortData): List<Movie.Video> {
         val viewModel = SourceViewModel()
