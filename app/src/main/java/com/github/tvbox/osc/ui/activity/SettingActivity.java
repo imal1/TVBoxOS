@@ -1,5 +1,6 @@
 package com.github.tvbox.osc.ui.activity;
 
+import com.github.tvbox.osc.compose.main.MainActivity;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -46,6 +47,7 @@ public class SettingActivity extends BaseActivity {
     private String currentApi;
     private int homeRec;
     private String currentLiveApi;
+    private String currentHomeApi;
 
     @Override
     protected int getLayoutResID() {
@@ -115,6 +117,7 @@ public class SettingActivity extends BaseActivity {
         homeSourceKey = ApiConfig.get().getHomeSourceBean().getKey();
         homeRec = Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC);
         currentLiveApi = Hawk.get(HawkConfig.LIVE_API_URL, "");
+        currentHomeApi = Hawk.get(HawkConfig.HOME_API, "");
         List<String> sortList = new ArrayList<>();
         sortList.add("设置其他");
         sortAdapter.setNewData(sortList);
@@ -182,24 +185,16 @@ public class SettingActivity extends BaseActivity {
 
     @Override
     public void onBackPressed() {
-        if (currentApi.equals(Hawk.get(HawkConfig.API_URL, ""))) {
-            if (homeRec != Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC)) {
-                jumpActivity(HomeActivity.class, createBundle());
-            }else if(!currentLiveApi.equals(Hawk.get(HawkConfig.LIVE_API_URL, ""))){
-                jumpActivity(HomeActivity.class, createBundle());
-            }
-        } else {
-            AppManager.getInstance().finishActivity(HomeActivity.class);
-            jumpActivity(HomeActivity.class);
+        // 配置地址、首页推荐、直播地址或首页数据源有变化时，重建 Compose 主界面重新加载
+        boolean changed = !currentApi.equals(Hawk.get(HawkConfig.API_URL, ""))
+                || homeRec != Hawk.get(HawkConfig.HOME_REC, HawkConfig.DEFAULT_HOME_REC)
+                || !currentLiveApi.equals(Hawk.get(HawkConfig.LIVE_API_URL, ""))
+                || !currentHomeApi.equals(Hawk.get(HawkConfig.HOME_API, ""));
+        if (changed) {
+            MainActivity.restart(this);
             finish();
             return;
         }
         super.onBackPressed();
-    }
-
-    private Bundle createBundle() {
-        Bundle bundle = new Bundle();
-        bundle.putBoolean("useCache", true);
-        return bundle;
     }
 }

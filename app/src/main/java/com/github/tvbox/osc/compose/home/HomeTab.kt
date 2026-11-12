@@ -39,7 +39,7 @@ import com.github.tvbox.osc.compose.theme.TvTokens
 @Composable
 fun HomeTab(
     onOpenItem: (PosterItem) -> Unit,
-    onOpenLegacy: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     restoreFocusKey: String? = null,
     onFocusRestored: () -> Unit = {},
@@ -58,15 +58,15 @@ fun HomeTab(
         HomeUiState.Loading -> HomeLoading(modifier)
         HomeUiState.NotConfigured -> HomeMessage(
             title = "尚未配置数据源",
-            detail = "请先在旧版界面的「设置 → 配置地址」中填写数据源",
-            primaryAction = "打开旧版界面" to onOpenLegacy,
+            detail = "请先在「设置 → 配置地址」中填写数据源",
+            primaryAction = "打开设置" to onOpenSettings,
             modifier = modifier,
         )
         is HomeUiState.Failed -> HomeMessage(
             title = "首页加载失败",
             detail = current.message,
             primaryAction = "重试" to { viewModel.retry(activity) },
-            secondaryAction = "打开旧版界面" to onOpenLegacy,
+            secondaryAction = "打开设置" to onOpenSettings,
             modifier = modifier,
         )
         is HomeUiState.Content -> HomeContent(current, onOpenItem, restoreFocusKey, onFocusRestored, modifier)
