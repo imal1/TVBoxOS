@@ -78,6 +78,11 @@ object TvTokens {
         val categoryWidth = 220.dp   // 左侧分类列宽（含左边距）
     }
 
+    object Search {
+        val fieldHeight = 56.dp
+        val keySize = 44.dp
+    }
+
     object Focus {
         const val cardScale = 1.12f       // 获得焦点时的放大倍率
         const val tabScale = 1.05f

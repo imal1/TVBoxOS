@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import com.github.tvbox.osc.compose.components.PosterItem
 import com.github.tvbox.osc.ui.activity.DetailActivity
-import com.github.tvbox.osc.ui.activity.FastSearchActivity
 import com.github.tvbox.osc.ui.activity.HomeActivity
 
 /**
@@ -17,10 +16,6 @@ object LegacyNavigator {
     fun hasDetail(item: PosterItem): Boolean {
         val vodId = item.vodId
         return !vodId.isNullOrEmpty() && !vodId.startsWith("msearch:") && !item.sourceKey.isNullOrEmpty()
-    }
-
-    fun search(context: Context, title: String) {
-        context.startActivity(Intent(context, FastSearchActivity::class.java).putExtra("title", title))
     }
 
     /** 选集后起播：旧 DetailActivity 的直接全屏播放模式（13 号票重写播放器后替换）。 */
