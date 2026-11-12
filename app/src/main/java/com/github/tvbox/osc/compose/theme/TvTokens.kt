@@ -83,6 +83,10 @@ object TvTokens {
         val keySize = 44.dp
     }
 
+    object Lan {
+        val qrSize = 300.dp
+    }
+
     object Focus {
         const val cardScale = 1.12f       // 获得焦点时的放大倍率
         const val tabScale = 1.05f

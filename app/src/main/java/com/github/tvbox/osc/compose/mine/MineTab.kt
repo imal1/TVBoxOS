@@ -54,6 +54,8 @@ private sealed interface PendingConfirm {
 @Composable
 fun MineTab(
     onOpenDetail: (PosterItem) -> Unit,
+    onOpenPush: () -> Unit,
+    onOpenTransfer: () -> Unit,
     restoreFocusKey: String? = null,
     onFocusRestored: () -> Unit = {},
     viewModel: MineViewModel = viewModel(),
@@ -83,10 +85,10 @@ fun MineTab(
             ) {
                 Button(onClick = { LegacyNavigator.openSettings(context) }) { Text("设置") }
                 OutlinedButton(onClick = { LegacyNavigator.openLive(context) }) { Text("直播") }
-                OutlinedButton(onClick = { LegacyNavigator.openPush(context) }) { Text("推送") }
+                OutlinedButton(onClick = onOpenPush) { Text("推送") }
                 // 与上游一致：文件传输仅在电视或盒子设备上提供
                 if (remember { ScreenUtils.isTv(context) }) {
-                    OutlinedButton(onClick = { LegacyNavigator.openTransfer(context) }) { Text("传输") }
+                    OutlinedButton(onClick = onOpenTransfer) { Text("传输") }
                 }
             }
         }

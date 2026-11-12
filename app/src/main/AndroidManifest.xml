@@ -71,16 +71,10 @@
             android:configChanges="orientation|screenSize"
             android:screenOrientation="sensorLandscape" />
         <activity
-            android:name=".ui.activity.PushActivity"
-            android:screenOrientation="sensorLandscape" />
-        <activity
             android:name=".ui.activity.SettingActivity"
             android:screenOrientation="sensorLandscape" />
         <activity
             android:name=".ui.activity.LocalFileActivity"
-            android:screenOrientation="sensorLandscape" />
-        <activity
-            android:name=".ui.activity.TransferActivity"
             android:screenOrientation="sensorLandscape" />
 
         <!-- 05 号票临时技术验证屏，入口：设置页长按「关于」 -->
