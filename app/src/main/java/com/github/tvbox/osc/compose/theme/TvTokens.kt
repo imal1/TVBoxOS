@@ -68,6 +68,12 @@ object TvTokens {
         val backdropBlur = 48.dp          // 背景模糊半径
     }
 
+    object Detail {
+        val posterWidth = 200.dp
+        val posterHeight = 300.dp
+        val textMaxWidth = 720.dp
+    }
+
     object Focus {
         const val cardScale = 1.12f       // 获得焦点时的放大倍率
         const val tabScale = 1.05f

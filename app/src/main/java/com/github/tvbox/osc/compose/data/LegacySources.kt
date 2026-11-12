@@ -83,6 +83,29 @@ object LegacySources {
         return result?.movie?.videoList.orEmpty()
     }
 
+    /** 影片详情；失败或超时返回 null。 */
+    suspend fun detail(sourceKey: String, vodId: String): Movie.Video? {
+        val viewModel = SourceViewModel()
+        val result = awaitFirst(viewModel.detailResult) { viewModel.getDetail(sourceKey, vodId) }
+        return result?.movie?.videoList?.firstOrNull()
+    }
+
+    suspend fun historyRecord(sourceKey: String, vodId: String): VodInfo? = withContext(Dispatchers.IO) {
+        RoomDataManger.getVodInfo(sourceKey, vodId)
+    }
+
+    suspend fun isFavorite(sourceKey: String, vodId: String): Boolean = withContext(Dispatchers.IO) {
+        RoomDataManger.isVodCollect(sourceKey, vodId)
+    }
+
+    suspend fun setFavorite(sourceKey: String, vodInfo: VodInfo, favorite: Boolean) = withContext(Dispatchers.IO) {
+        if (favorite) RoomDataManger.insertVodCollect(sourceKey, vodInfo)
+        else RoomDataManger.deleteVodCollect(sourceKey, vodInfo)
+    }
+
+    fun sourceName(sourceKey: String?): String? =
+        sourceKey?.let { ApiConfig.get().getSource(it)?.name }?.takeIf { it.isNotEmpty() }
+
     suspend fun history(limit: Int): List<VodInfo> = withContext(Dispatchers.IO) {
         RoomDataManger.getAllVodRecord(limit).orEmpty()
     }

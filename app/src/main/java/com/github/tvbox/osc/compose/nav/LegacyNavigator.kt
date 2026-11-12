@@ -13,19 +13,27 @@ import com.github.tvbox.osc.ui.activity.HomeActivity
  */
 object LegacyNavigator {
 
-    /** 与旧首页一致：无 id 或 msearch: 开头（如豆瓣推荐）按片名搜索，否则进入详情。 */
-    fun openItem(context: Context, item: PosterItem) {
+    /** 是否进入详情页；与旧首页一致，无 id 或 msearch: 开头（如豆瓣推荐）的按片名搜索。 */
+    fun hasDetail(item: PosterItem): Boolean {
         val vodId = item.vodId
-        if (vodId.isNullOrEmpty() || vodId.startsWith("msearch:")) {
-            context.startActivity(Intent(context, FastSearchActivity::class.java).putExtra("title", item.title))
-            return
-        }
+        return !vodId.isNullOrEmpty() && !vodId.startsWith("msearch:") && !item.sourceKey.isNullOrEmpty()
+    }
+
+    fun search(context: Context, title: String) {
+        context.startActivity(Intent(context, FastSearchActivity::class.java).putExtra("title", title))
+    }
+
+    /** 选集后起播：旧 DetailActivity 的直接全屏播放模式（13 号票重写播放器后替换）。 */
+    fun play(context: Context, sourceKey: String, vodId: String, title: String, poster: String?, flag: String, index: Int) {
         context.startActivity(
             Intent(context, DetailActivity::class.java)
                 .putExtra("id", vodId)
-                .putExtra("sourceKey", item.sourceKey ?: "")
-                .putExtra("title", item.title)
-                .putExtra("picture", item.imageUrl ?: ""),
+                .putExtra("sourceKey", sourceKey)
+                .putExtra("title", title)
+                .putExtra("picture", poster.orEmpty())
+                .putExtra(DetailActivity.EXTRA_AUTO_FULL_PLAY, true)
+                .putExtra(DetailActivity.EXTRA_PLAY_FLAG, flag)
+                .putExtra(DetailActivity.EXTRA_PLAY_INDEX, index),
         )
     }
 

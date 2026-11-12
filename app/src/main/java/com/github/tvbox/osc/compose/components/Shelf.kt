@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -71,6 +74,9 @@ fun Shelf(
     modifier: Modifier = Modifier,
     onItemFocused: (PosterItem) -> Unit = {},
     loading: Boolean = false,
+    /** 需要恢复焦点的卡片 id（例如从详情页返回时回到原卡片）。 */
+    restoreFocusKey: String? = null,
+    onFocusRestored: () -> Unit = {},
 ) {
     var focusedIndex by remember { mutableStateOf(-1) }
     Column(modifier = modifier.fillMaxWidth()) {
@@ -105,6 +111,8 @@ fun Shelf(
                             }
                         },
                         onClick = { onItemClick(item) },
+                        requestFocus = item.id == restoreFocusKey,
+                        onFocusRequested = onFocusRestored,
                     )
                 }
             }
@@ -119,8 +127,17 @@ fun PosterCard(
     onFocusChanged: (Boolean) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    requestFocus: Boolean = false,
+    onFocusRequested: () -> Unit = {},
 ) {
     var focused by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(requestFocus) {
+        if (requestFocus) {
+            runCatching { focusRequester.requestFocus() }
+            onFocusRequested()
+        }
+    }
     val floatSpring = spring<Float>(TvTokens.Focus.springDampingRatio, TvTokens.Focus.springStiffness)
     val scale by animateFloatAsState(if (focused) TvTokens.Focus.cardScale else 1f, floatSpring, label = "cardScale")
     val alpha by animateFloatAsState(if (dimmed) TvTokens.Focus.dimmedAlpha else 1f, label = "cardAlpha")
@@ -142,6 +159,7 @@ fun PosterCard(
                 spotShadowColor = TvTokens.Colors.shadow
             }
             .background(TvTokens.Colors.placeholder)
+            .focusRequester(focusRequester)
             .onFocusChanged {
                 focused = it.isFocused
                 onFocusChanged(it.isFocused)
