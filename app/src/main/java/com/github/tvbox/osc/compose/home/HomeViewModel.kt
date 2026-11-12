@@ -7,11 +7,16 @@ import com.github.tvbox.osc.bean.Movie
 import com.github.tvbox.osc.bean.VodInfo
 import com.github.tvbox.osc.cache.VodCollect
 import com.github.tvbox.osc.compose.components.PosterItem
+import com.github.tvbox.osc.compose.data.AppSession
 import com.github.tvbox.osc.compose.data.LegacySources
+import com.github.tvbox.osc.util.DefaultConfig
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -43,19 +48,20 @@ class HomeViewModel : ViewModel() {
     private var sourceName: String? = null
     private var loadJob: Job? = null
     private var loadedOnce = false
+    private var sourceWatchJob: Job? = null
 
     fun loadIfNeeded(activity: Activity) {
-        if (!loadedOnce) load(activity, useCache = false)
+        if (!loadedOnce) load(activity, force = false)
     }
 
-    fun retry(activity: Activity) = load(activity, useCache = false)
+    fun retry(activity: Activity) = load(activity, force = true)
 
-    private fun load(activity: Activity, useCache: Boolean) {
+    private fun load(activity: Activity, force: Boolean) {
         loadedOnce = true
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             _state.value = HomeUiState.Loading
-            when (val config = LegacySources.loadConfig(activity, useCache)) {
+            when (val config = AppSession.ensureConfig(activity, force)) {
                 LegacySources.ConfigResult.NotConfigured -> {
                     _state.value = HomeUiState.NotConfigured
                     return@launch
@@ -66,45 +72,63 @@ class HomeViewModel : ViewModel() {
                 }
                 LegacySources.ConfigResult.Ready -> Unit
             }
-            sourceName = LegacySources.homeSourceName()
             localShelves = loadLocalShelves()
-            remoteShelves = emptyList()
-            publish()
+            loadRemote()
+        }
+        watchSourceChanges()
+    }
 
-            val sort = LegacySources.homeSort()
-            val sourceKey = LegacySources.homeSourceKey()
-            val recommend = sort?.videoList.orEmpty().mapNotNull { it.toPosterItem(sourceKey, "rec") }.distinctBy { it.id }
-            val categories = sort?.classes?.sortList.orEmpty()
-                .filter { !it.id.isNullOrEmpty() && !it.name.isNullOrEmpty() }
+    /** 在其他页面（如影视 tab）切换数据源后，重新加载推荐与分类。 */
+    private fun watchSourceChanges() {
+        if (sourceWatchJob != null) return
+        sourceWatchJob = viewModelScope.launch {
+            AppSession.currentSourceKey.drop(1).filterNotNull().distinctUntilChanged().collect {
+                if (_state.value !is HomeUiState.Content) return@collect
+                loadJob?.cancel()
+                loadJob = launch { loadRemote() }
+            }
+        }
+    }
+
+    private suspend fun loadRemote() {
+        sourceName = LegacySources.homeSourceName()
+        remoteShelves = emptyList()
+        publish()
+
+        val sort = LegacySources.homeSort()
+        val sourceKey = LegacySources.homeSourceKey()
+        val recommend = sort?.videoList.orEmpty().mapNotNull { it.toPosterItem(sourceKey, "rec") }.distinctBy { it.id }
+        // 与旧版一致：按站点配置的 categories 过滤与排序分类
+        val categories = DefaultConfig.adjustSort(sourceKey, sort?.classes?.sortList.orEmpty(), false)
+            .filter { !it.id.isNullOrEmpty() && !it.name.isNullOrEmpty() }
+            .distinctBy { it.id }
+            .take(MAX_CATEGORY_SHELVES)
+
+        remoteShelves = buildList {
+            if (recommend.isNotEmpty()) add(HomeShelf("rec", "站点推荐", recommend))
+            categories.forEach { add(HomeShelf("cat-${it.id}", it.name, emptyList(), loading = true)) }
+        }
+        if (remoteShelves.isEmpty() && localShelves.isEmpty()) {
+            _state.value = HomeUiState.Failed(
+                if (sort == null) "数据源加载失败或超时" else "当前数据源没有可展示的内容",
+            )
+            return
+        }
+        publish()
+
+        categories.forEach { category ->
+            val key = "cat-${category.id}"
+            val items = runCatching { LegacySources.categoryVideos(category) }.getOrDefault(emptyList())
+                .mapNotNull { it.toPosterItem(sourceKey, key) }
                 .distinctBy { it.id }
-                .take(MAX_CATEGORY_SHELVES)
-
-            remoteShelves = buildList {
-                if (recommend.isNotEmpty()) add(HomeShelf("rec", "站点推荐", recommend))
-                categories.forEach { add(HomeShelf("cat-${it.id}", it.name, emptyList(), loading = true)) }
-            }
-            if (remoteShelves.isEmpty() && localShelves.isEmpty()) {
-                _state.value = HomeUiState.Failed(
-                    if (sort == null) "数据源加载失败或超时" else "当前数据源没有可展示的内容",
-                )
-                return@launch
+            remoteShelves = remoteShelves.mapNotNull { shelf ->
+                when {
+                    shelf.key != key -> shelf
+                    items.isEmpty() -> null // 拉取失败或为空的分类不显示
+                    else -> shelf.copy(items = items, loading = false)
+                }
             }
             publish()
-
-            categories.forEach { category ->
-                val key = "cat-${category.id}"
-                val items = runCatching { LegacySources.categoryVideos(category) }.getOrDefault(emptyList())
-                    .mapNotNull { it.toPosterItem(sourceKey, key) }
-                    .distinctBy { it.id }
-                remoteShelves = remoteShelves.mapNotNull { shelf ->
-                    when {
-                        shelf.key != key -> shelf
-                        items.isEmpty() -> null // 拉取失败或为空的分类不显示
-                        else -> shelf.copy(items = items, loading = false)
-                    }
-                }
-                publish()
-            }
         }
     }
 
