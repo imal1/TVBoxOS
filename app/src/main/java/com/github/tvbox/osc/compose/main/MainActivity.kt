@@ -45,6 +45,8 @@ import com.github.tvbox.osc.compose.components.PosterItem
 import com.github.tvbox.osc.compose.detail.DetailScreen
 import com.github.tvbox.osc.compose.home.HomeTab
 import com.github.tvbox.osc.compose.image.newTvImageLoader
+import com.github.tvbox.osc.compose.lan.PushScreen
+import com.github.tvbox.osc.compose.lan.TransferScreen
 import com.github.tvbox.osc.compose.mine.MineTab
 import com.github.tvbox.osc.compose.movies.MoviesTab
 import com.github.tvbox.osc.compose.search.SearchTab
@@ -150,8 +152,11 @@ private fun AppNavHost(onExit: () -> Unit, pendingSearch: String?, onPendingSear
                         AppRoutes.detail(item.sourceKey.orEmpty(), item.vodId.orEmpty(), item.title, item.imageUrl),
                     )
                 },
+                onOpenRoute = { route -> navController.navigate(route) },
             )
         }
+        composable(AppRoutes.PUSH) { PushScreen() }
+        composable(AppRoutes.TRANSFER) { TransferScreen() }
         composable(
             route = AppRoutes.DETAIL,
             arguments = listOf(
@@ -181,6 +186,7 @@ private const val TAB_MINE = 4
 private fun MainScreen(
     onExit: () -> Unit,
     onOpenDetail: (PosterItem) -> Unit,
+    onOpenRoute: (String) -> Unit,
     pendingSearch: String? = null,
     onPendingSearchConsumed: () -> Unit = {},
 ) {
@@ -251,6 +257,8 @@ private fun MainScreen(
                     TAB_LIVE -> LivePlaceholder(onOpenLive = { LegacyNavigator.openLive(context) })
                     TAB_MINE -> MineTab(
                         onOpenDetail = openItem,
+                        onOpenPush = { onOpenRoute(AppRoutes.PUSH) },
+                        onOpenTransfer = { onOpenRoute(AppRoutes.TRANSFER) },
                         restoreFocusKey = restoreFocusKey,
                         onFocusRestored = { restoreFocusKey = null },
                     )

@@ -5,6 +5,8 @@ import android.net.Uri
 /** Compose Navigation 路由。后续页面（设置等）重写后在此新增。 */
 object AppRoutes {
     const val MAIN = "main"
+    const val PUSH = "push"
+    const val TRANSFER = "transfer"
 
     const val ARG_SOURCE_KEY = "sourceKey"
     const val ARG_VOD_ID = "vodId"

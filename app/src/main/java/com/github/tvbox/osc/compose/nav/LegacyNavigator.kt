@@ -5,9 +5,7 @@ import android.content.Intent
 import com.github.tvbox.osc.compose.components.PosterItem
 import com.github.tvbox.osc.ui.activity.DetailActivity
 import com.github.tvbox.osc.ui.activity.LivePlayActivity
-import com.github.tvbox.osc.ui.activity.PushActivity
 import com.github.tvbox.osc.ui.activity.SettingActivity
-import com.github.tvbox.osc.ui.activity.TransferActivity
 
 /**
  * 尚未用 Compose 重写的页面仍跳转到旧 Activity，保证重写期间功能完整。
@@ -49,9 +47,5 @@ object LegacyNavigator {
     /** 直播（12 号票重写前为旧页面）。 */
     fun openLive(context: Context) = context.startActivity(Intent(context, LivePlayActivity::class.java))
 
-    /** 局域网推送（#26 重写前为旧页面）。 */
-    fun openPush(context: Context) = context.startActivity(Intent(context, PushActivity::class.java))
 
-    /** 局域网文件传输（#26 重写前为旧页面）。 */
-    fun openTransfer(context: Context) = context.startActivity(Intent(context, TransferActivity::class.java))
 }
