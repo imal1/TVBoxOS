@@ -32,6 +32,12 @@ object AppSession {
             result
         }
 
+    /** 配置已在设置中修改：下次进入主界面时重新加载。 */
+    fun invalidate() {
+        configResult = null
+        _currentSourceKey.value = null
+    }
+
     fun sources(): List<SourceBean> = ApiConfig.get().switchSourceBeanList.orEmpty()
 
     fun switchSource(source: SourceBean) {

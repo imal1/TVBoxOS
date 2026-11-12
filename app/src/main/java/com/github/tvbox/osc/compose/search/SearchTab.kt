@@ -233,7 +233,7 @@ private fun KeyButton(label: String, onClick: () -> Unit) {
 private fun WordsPanel(state: SearchUiState, onPick: (String) -> Unit, onClearHistory: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (state.notConfigured) {
-            SectionTitle("尚未配置数据源，请先在旧版界面「设置」中填写")
+            SectionTitle("尚未配置数据源，请先在「我的 → 设置」中填写")
         }
         if (state.suggestions.isNotEmpty()) WordRow("猜你想搜", state.suggestions, onPick)
         if (state.hotWords.isNotEmpty()) WordRow("热门搜索", state.hotWords, onPick)

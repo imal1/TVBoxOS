@@ -60,7 +60,7 @@ private const val PREFETCH_DISTANCE = 6
 @Composable
 fun MoviesTab(
     onOpenItem: (PosterItem) -> Unit,
-    onOpenLegacy: () -> Unit,
+    onOpenSettings: () -> Unit,
     restoreFocusKey: String? = null,
     onFocusRestored: () -> Unit = {},
     viewModel: MoviesViewModel = viewModel(),
@@ -88,7 +88,7 @@ fun MoviesTab(
         }
         when (val status = state.status) {
             MoviesStatus.Loading -> CenterMessage("正在加载分类…")
-            MoviesStatus.NotConfigured -> CenterMessage("尚未配置数据源", "打开旧版界面", onOpenLegacy)
+            MoviesStatus.NotConfigured -> CenterMessage("尚未配置数据源", "打开设置", onOpenSettings)
             is MoviesStatus.Failed -> CenterMessage(status.message, "重试") { viewModel.retry(activity) }
             MoviesStatus.Ready -> MoviesBrowser(state, viewModel, onOpenItem, restoreFocusKey, onFocusRestored)
         }

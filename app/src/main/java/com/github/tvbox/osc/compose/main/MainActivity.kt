@@ -45,6 +45,7 @@ import com.github.tvbox.osc.compose.components.PosterItem
 import com.github.tvbox.osc.compose.detail.DetailScreen
 import com.github.tvbox.osc.compose.home.HomeTab
 import com.github.tvbox.osc.compose.image.newTvImageLoader
+import com.github.tvbox.osc.compose.mine.MineTab
 import com.github.tvbox.osc.compose.movies.MoviesTab
 import com.github.tvbox.osc.compose.search.SearchTab
 import com.github.tvbox.osc.compose.nav.AppRoutes
@@ -52,7 +53,10 @@ import com.github.tvbox.osc.compose.nav.LegacyNavigator
 import com.github.tvbox.osc.compose.theme.TvTheme
 import com.github.tvbox.osc.compose.theme.TvTokens
 import com.github.tvbox.osc.server.ControlManager
+import com.github.tvbox.osc.compose.data.AppSession
+import com.github.tvbox.osc.util.HawkConfig
 import com.github.tvbox.osc.util.StoragePermission
+import com.orhanobut.hawk.Hawk
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 
@@ -69,6 +73,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         pendingSearch.value = intent?.getStringExtra(EXTRA_SEARCH)
         StoragePermission.promptOnFirstLaunch(this)
+        // 设置项「开机默认进入直播」（旧首页的行为），仅冷启动时生效
+        if (savedInstanceState == null && Hawk.get(HawkConfig.DEFAULT_LOAD_LIVE, false)) LegacyNavigator.openLive(this)
         ControlManager.get().startServer() // 局域网推送服务，原先只在旧首页启动
         setContent {
             setSingletonImageLoaderFactory { context -> newTvImageLoader(context) }
@@ -94,6 +100,16 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val EXTRA_SEARCH = "search"
+
+        /** 设置中修改了配置地址、数据源等：丢弃已加载的配置，重建主界面重新加载。 */
+        @JvmStatic
+        fun restart(context: Context) {
+            AppSession.invalidate()
+            context.startActivity(
+                Intent(context, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK),
+            )
+        }
 
         /** 供旧页面与广播接收器调用：回到主界面并在搜索 tab 中搜索 title（为空时只切到搜索 tab）。 */
         @JvmStatic
@@ -157,6 +173,7 @@ private fun AppNavHost(onExit: () -> Unit, pendingSearch: String?, onPendingSear
 private val Tabs = listOf("首页", "影视", "直播", "搜索", "我的")
 private const val TAB_HOME = 0
 private const val TAB_MOVIES = 1
+private const val TAB_LIVE = 2
 private const val TAB_SEARCH = 3
 private const val TAB_MINE = 4
 
@@ -175,7 +192,7 @@ private fun MainScreen(
     var tabBarHasFocus by remember { mutableStateOf(true) }
     // 从详情页返回时，焦点回到进入前的卡片
     var restoreFocusKey by rememberSaveable { mutableStateOf<String?>(null) }
-    val openLegacy = { LegacyNavigator.openLegacyHome(context) }
+    val openSettings = { LegacyNavigator.openSettings(context) }
     // 搜索 tab 待搜索的关键词：来自其他页面（Intent）或无详情的卡片（如豆瓣推荐）
     var searchQuery by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(pendingSearch) {
@@ -214,13 +231,13 @@ private fun MainScreen(
                 when (selectedTab) {
                     TAB_HOME -> HomeTab(
                         onOpenItem = openItem,
-                        onOpenLegacy = openLegacy,
+                        onOpenSettings = openSettings,
                         restoreFocusKey = restoreFocusKey,
                         onFocusRestored = { restoreFocusKey = null },
                     )
                     TAB_MOVIES -> MoviesTab(
                         onOpenItem = openItem,
-                        onOpenLegacy = openLegacy,
+                        onOpenSettings = openSettings,
                         restoreFocusKey = restoreFocusKey,
                         onFocusRestored = { restoreFocusKey = null },
                     )
@@ -231,7 +248,12 @@ private fun MainScreen(
                         restoreFocusKey = restoreFocusKey,
                         onFocusRestored = { restoreFocusKey = null },
                     )
-                    TAB_MINE -> MinePlaceholder(openLegacy)
+                    TAB_LIVE -> LivePlaceholder(onOpenLive = { LegacyNavigator.openLive(context) })
+                    TAB_MINE -> MineTab(
+                        onOpenDetail = openItem,
+                        restoreFocusKey = restoreFocusKey,
+                        onFocusRestored = { restoreFocusKey = null },
+                    )
                     else -> EmptyTab(Tabs[selectedTab])
                 }
             }
@@ -266,22 +288,20 @@ private fun EmptyTab(title: String) {
     }
 }
 
-/** 「我的」tab 在 11 号票重写前的占位；提供回到旧版界面的入口，保证重写期间应用可用。 */
+/** 直播 tab 在 12 号票重写前的占位：进入旧直播页。 */
 @Composable
-private fun MinePlaceholder(onOpenLegacy: () -> Unit) {
+private fun LivePlaceholder(onOpenLive: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Text(
-                text = "新界面重写中，完整功能请使用旧版界面",
+                text = "直播界面重写中",
                 style = MaterialTheme.typography.titleLarge,
                 color = TvTokens.Colors.onBackgroundSecondary,
             )
-            Button(onClick = onOpenLegacy) {
-                Text("打开旧版界面")
-            }
+            Button(onClick = onOpenLive) { Text("打开直播") }
         }
     }
 }
