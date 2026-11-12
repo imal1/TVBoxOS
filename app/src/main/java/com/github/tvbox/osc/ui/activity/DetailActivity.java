@@ -170,6 +170,10 @@ public class DetailActivity extends BaseActivity {
 
     @Override
     protected void init() {
+        // 直接全屏播放模式需在 initView 之前关闭小窗预览，保证界面初始化与之一致
+        if (getIntent() != null && getIntent().getBooleanExtra(EXTRA_AUTO_FULL_PLAY, false)) {
+            showPreview = false;
+        }
         EventBus.getDefault().register(this);
         initView();
         initViewModel();
@@ -945,7 +949,16 @@ public class DetailActivity extends BaseActivity {
 
                         restoreDetailFallbackEpisode();
                         resetDetailFallback();
+                        if (autoFullPlay && !autoFullPlayStarted && requestedPlayFlag != null && vodInfo.seriesMap.containsKey(requestedPlayFlag)) {
+                            vodInfo.playFlag = requestedPlayFlag;
+                        }
                         List<VodInfo.VodSeries> playingSeriesList = vodInfo.seriesMap.get(vodInfo.playFlag);
+                        if (autoFullPlay && !autoFullPlayStarted && requestedPlayIndex >= 0) {
+                            // Compose 详情页传入的是原始顺序下的集数；开启倒序时换算为当前列表的下标
+                            vodInfo.playIndex = vodInfo.reverseSort
+                                    ? playingSeriesList.size() - 1 - requestedPlayIndex
+                                    : requestedPlayIndex;
+                        }
                         vodInfo.playIndex = Math.max(0, Math.min(vodInfo.playIndex, playingSeriesList.size() - 1));
 
                         int flagScrollTo = 0;
@@ -968,6 +981,9 @@ public class DetailActivity extends BaseActivity {
                             llPlayerFragmentContainer.setVisibility(View.VISIBLE);
                             llPlayerFragmentContainerBlock.setVisibility(View.VISIBLE);
                             toggleSubtitleTextSize();
+                        } else if (autoFullPlay && !autoFullPlayStarted) {
+                            autoFullPlayStarted = true;
+                            jumpToPlay();
                         }
                         // startQuickSearch();
                     } else {
@@ -1007,10 +1023,30 @@ public class DetailActivity extends BaseActivity {
 
     private String  vod_picture="";
     private String  vod_name="";
+
+    /**
+     * 直接全屏播放模式：由 Compose 详情页选集后进入，跳过旧详情界面，
+     * 按指定线路与集数直接全屏起播，退出全屏即关闭本页返回 Compose 详情页。
+     * 播放器重写（13 号票）后连同本 Activity 一并移除。
+     */
+    public static final String EXTRA_AUTO_FULL_PLAY = "autoFullPlay";
+    public static final String EXTRA_PLAY_FLAG = "playFlag";
+    public static final String EXTRA_PLAY_INDEX = "playIndex";
+    private boolean autoFullPlay = false;
+    private boolean autoFullPlayStarted = false;
+    private String requestedPlayFlag = null;
+    private int requestedPlayIndex = -1;
+
     private void initData() {
         Intent intent = getIntent();
         if (intent != null && intent.getExtras() != null) {
             Bundle bundle = intent.getExtras();
+            autoFullPlay = bundle.getBoolean(EXTRA_AUTO_FULL_PLAY, false);
+            if (autoFullPlay) {
+                showPreview = false;
+                requestedPlayFlag = bundle.getString(EXTRA_PLAY_FLAG, null);
+                requestedPlayIndex = bundle.getInt(EXTRA_PLAY_INDEX, -1);
+            }
             vod_name=bundle.getString("title", "");
             vod_picture=bundle.getString("picture", "");
             fromCollect = bundle.getBoolean("collect", false);
@@ -1895,6 +1931,10 @@ public class DetailActivity extends BaseActivity {
         if (fullWindows) {
             if (playFragment.onBackPressed())
                 return;
+            if (autoFullPlay) {
+                finish();
+                return;
+            }
             exitFullPreview();
             return;
         }

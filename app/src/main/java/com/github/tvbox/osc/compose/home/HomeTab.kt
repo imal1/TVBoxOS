@@ -41,6 +41,8 @@ fun HomeTab(
     onOpenItem: (PosterItem) -> Unit,
     onOpenLegacy: () -> Unit,
     modifier: Modifier = Modifier,
+    restoreFocusKey: String? = null,
+    onFocusRestored: () -> Unit = {},
     viewModel: HomeViewModel = viewModel(),
 ) {
     val activity = LocalContext.current as Activity
@@ -67,7 +69,7 @@ fun HomeTab(
             secondaryAction = "打开旧版界面" to onOpenLegacy,
             modifier = modifier,
         )
-        is HomeUiState.Content -> HomeContent(current, onOpenItem, modifier)
+        is HomeUiState.Content -> HomeContent(current, onOpenItem, restoreFocusKey, onFocusRestored, modifier)
     }
 }
 
@@ -75,6 +77,8 @@ fun HomeTab(
 private fun HomeContent(
     state: HomeUiState.Content,
     onOpenItem: (PosterItem) -> Unit,
+    restoreFocusKey: String?,
+    onFocusRestored: () -> Unit,
     modifier: Modifier,
 ) {
     val firstItem = state.shelves.firstOrNull { it.items.isNotEmpty() }?.items?.firstOrNull()
@@ -98,6 +102,8 @@ private fun HomeContent(
                     loading = shelf.loading,
                     onItemClick = onOpenItem,
                     onItemFocused = { focusedItem = it },
+                    restoreFocusKey = restoreFocusKey,
+                    onFocusRestored = onFocusRestored,
                 )
             }
         }
