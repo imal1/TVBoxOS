@@ -1,5 +1,7 @@
 package com.github.tvbox.osc.compose.main
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -44,6 +46,7 @@ import com.github.tvbox.osc.compose.detail.DetailScreen
 import com.github.tvbox.osc.compose.home.HomeTab
 import com.github.tvbox.osc.compose.image.newTvImageLoader
 import com.github.tvbox.osc.compose.movies.MoviesTab
+import com.github.tvbox.osc.compose.search.SearchTab
 import com.github.tvbox.osc.compose.nav.AppRoutes
 import com.github.tvbox.osc.compose.nav.LegacyNavigator
 import com.github.tvbox.osc.compose.theme.TvTheme
@@ -58,28 +61,57 @@ import dev.chrisbanes.haze.rememberHazeState
  * tab 切换与屏幕切换均不产生 Activity 跳转。
  */
 class MainActivity : ComponentActivity() {
+
+    /** 其他页面请求在搜索 tab 中搜索的关键词。 */
+    private val pendingSearch = mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingSearch.value = intent?.getStringExtra(EXTRA_SEARCH)
         StoragePermission.promptOnFirstLaunch(this)
         ControlManager.get().startServer() // 局域网推送服务，原先只在旧首页启动
         setContent {
             setSingletonImageLoaderFactory { context -> newTvImageLoader(context) }
             TvTheme {
-                AppNavHost(onExit = { finish() })
+                AppNavHost(
+                    onExit = { finish() },
+                    pendingSearch = pendingSearch.value,
+                    onPendingSearchConsumed = { pendingSearch.value = null },
+                )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra(EXTRA_SEARCH)?.let { pendingSearch.value = it }
     }
 
     override fun onDestroy() {
         if (isFinishing) ControlManager.get().stopServer()
         super.onDestroy()
     }
+
+    companion object {
+        private const val EXTRA_SEARCH = "search"
+
+        /** 供旧页面与广播接收器调用：回到主界面并在搜索 tab 中搜索 title（为空时只切到搜索 tab）。 */
+        @JvmStatic
+        fun openSearch(context: Context, title: String?) {
+            context.startActivity(
+                Intent(context, MainActivity::class.java)
+                    // NEW_TASK：可能从广播接收器等非 Activity 上下文调用
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    .putExtra(EXTRA_SEARCH, title.orEmpty()),
+            )
+        }
+    }
 }
 
 private const val SCREEN_TRANSITION_MS = 320
 
 @Composable
-private fun AppNavHost(onExit: () -> Unit) {
+private fun AppNavHost(onExit: () -> Unit, pendingSearch: String?, onPendingSearchConsumed: () -> Unit) {
     val context = LocalContext.current
     val navController = rememberNavController()
     // 屏与屏之间是连续的淡入淡出 + 轻微缩放，背景始终为暗色，不出现整屏黑闪
@@ -95,6 +127,8 @@ private fun AppNavHost(onExit: () -> Unit) {
         composable(AppRoutes.MAIN) {
             MainScreen(
                 onExit = onExit,
+                pendingSearch = pendingSearch,
+                onPendingSearchConsumed = onPendingSearchConsumed,
                 onOpenDetail = { item ->
                     navController.navigate(
                         AppRoutes.detail(item.sourceKey.orEmpty(), item.vodId.orEmpty(), item.title, item.imageUrl),
@@ -123,10 +157,16 @@ private fun AppNavHost(onExit: () -> Unit) {
 private val Tabs = listOf("首页", "影视", "直播", "搜索", "我的")
 private const val TAB_HOME = 0
 private const val TAB_MOVIES = 1
+private const val TAB_SEARCH = 3
 private const val TAB_MINE = 4
 
 @Composable
-private fun MainScreen(onExit: () -> Unit, onOpenDetail: (PosterItem) -> Unit) {
+private fun MainScreen(
+    onExit: () -> Unit,
+    onOpenDetail: (PosterItem) -> Unit,
+    pendingSearch: String? = null,
+    onPendingSearchConsumed: () -> Unit = {},
+) {
     val context = LocalContext.current
     val hazeState = rememberHazeState()
     val tabStateHolder = rememberSaveableStateHolder()
@@ -136,12 +176,22 @@ private fun MainScreen(onExit: () -> Unit, onOpenDetail: (PosterItem) -> Unit) {
     // 从详情页返回时，焦点回到进入前的卡片
     var restoreFocusKey by rememberSaveable { mutableStateOf<String?>(null) }
     val openLegacy = { LegacyNavigator.openLegacyHome(context) }
+    // 搜索 tab 待搜索的关键词：来自其他页面（Intent）或无详情的卡片（如豆瓣推荐）
+    var searchQuery by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(pendingSearch) {
+        if (pendingSearch != null) {
+            if (pendingSearch.isNotBlank()) searchQuery = pendingSearch
+            selectedTab = TAB_SEARCH
+            onPendingSearchConsumed()
+        }
+    }
     val openItem: (PosterItem) -> Unit = { item ->
         if (LegacyNavigator.hasDetail(item)) {
             restoreFocusKey = item.id
             onOpenDetail(item)
         } else {
-            LegacyNavigator.search(context, item.title)
+            searchQuery = item.title
+            selectedTab = TAB_SEARCH
         }
     }
 
@@ -171,6 +221,13 @@ private fun MainScreen(onExit: () -> Unit, onOpenDetail: (PosterItem) -> Unit) {
                     TAB_MOVIES -> MoviesTab(
                         onOpenItem = openItem,
                         onOpenLegacy = openLegacy,
+                        restoreFocusKey = restoreFocusKey,
+                        onFocusRestored = { restoreFocusKey = null },
+                    )
+                    TAB_SEARCH -> SearchTab(
+                        onOpenItem = openItem,
+                        externalQuery = searchQuery,
+                        onExternalQueryConsumed = { searchQuery = null },
                         restoreFocusKey = restoreFocusKey,
                         onFocusRestored = { restoreFocusKey = null },
                     )

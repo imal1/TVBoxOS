@@ -1,5 +1,6 @@
 package com.github.tvbox.osc.ui.activity;
 
+import com.github.tvbox.osc.compose.main.MainActivity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -125,10 +126,7 @@ public class CollectActivity extends BaseActivity {
                             bundle.putBoolean("collect", true);
                             jumpActivity(DetailActivity.class, bundle);
                         } else {
-                            Intent newIntent = new Intent(mContext, SearchActivity.class);
-                            newIntent.putExtra("title", vodInfo.name);
-                            newIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                            startActivity(newIntent);
+                            MainActivity.openSearch(mContext, vodInfo.name);
                         }
                     }
                 }
@@ -139,13 +137,7 @@ public class CollectActivity extends BaseActivity {
             public boolean onItemLongClick(BaseQuickAdapter adapter, View view, int position) {
                 VodCollect vodInfo = collectAdapter.getData().get(position);
                 if (vodInfo != null) {
-                    Bundle bundle = new Bundle();
-                    bundle.putString("title", vodInfo.name);
-                    if (Hawk.get(HawkConfig.FAST_SEARCH_MODE, true)) {
-                        jumpActivity(FastSearchActivity.class, bundle);
-                    } else {
-                        jumpActivity(SearchActivity.class, bundle);
-                    }
+                    MainActivity.openSearch(mContext, vodInfo.name);
                 }
                 return true;
             }

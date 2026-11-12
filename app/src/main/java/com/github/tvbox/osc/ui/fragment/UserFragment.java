@@ -1,5 +1,6 @@
 package com.github.tvbox.osc.ui.fragment;
 
+import com.github.tvbox.osc.compose.main.MainActivity;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
@@ -23,11 +24,9 @@ import com.github.tvbox.osc.cache.RoomDataManger;
 import com.github.tvbox.osc.event.ServerEvent;
 import com.github.tvbox.osc.ui.activity.CollectActivity;
 import com.github.tvbox.osc.ui.activity.DetailActivity;
-import com.github.tvbox.osc.ui.activity.FastSearchActivity;
 import com.github.tvbox.osc.ui.activity.HistoryActivity;
 import com.github.tvbox.osc.ui.activity.LivePlayActivity;
 import com.github.tvbox.osc.ui.activity.PushActivity;
-import com.github.tvbox.osc.ui.activity.SearchActivity;
 import com.github.tvbox.osc.ui.activity.SettingActivity;
 import com.github.tvbox.osc.ui.activity.TransferActivity;
 import com.github.tvbox.osc.ui.adapter.HomeHotVodAdapter;
@@ -144,15 +143,7 @@ public class UserFragment extends BaseLazyFragment implements View.OnClickListen
     }
 
     private void jumpSearch(Movie.Video vod) {
-        Intent newIntent;
-        if (Hawk.get(HawkConfig.FAST_SEARCH_MODE, true)) {
-            newIntent = new Intent(mContext, FastSearchActivity.class);
-        } else {
-            newIntent = new Intent(mContext, SearchActivity.class);
-        }
-        newIntent.putExtra("title", vod.name);
-        newIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        mActivity.startActivity(newIntent);
+        MainActivity.openSearch(mContext, vod.name);
     }
 
     private ImgUtil.Style style;
@@ -243,9 +234,7 @@ public class UserFragment extends BaseLazyFragment implements View.OnClickListen
                     HawkConfig.hotVodDelete = !HawkConfig.hotVodDelete;
                     homeHotVodAdapter.notifyDataSetChanged();
                 } else {
-                    Bundle bundle = new Bundle();
-                    bundle.putString("title", vod.name);
-                    jumpActivity(FastSearchActivity.class, bundle);                    
+                    MainActivity.openSearch(mContext, vod.name);
                 }
                 return true;
             }    
@@ -382,7 +371,7 @@ public class UserFragment extends BaseLazyFragment implements View.OnClickListen
         if (v.getId() == R.id.tvLive) {
             jumpActivity(LivePlayActivity.class);
         } else if (v.getId() == R.id.tvSearch) {
-            jumpActivity(SearchActivity.class);
+            MainActivity.openSearch(mContext, null);
         } else if (v.getId() == R.id.tvSetting) {
             jumpActivity(SettingActivity.class);
         } else if (v.getId() == R.id.tvTransfer) {

@@ -73,26 +73,26 @@ object LegacySources {
     /** 当前数据源的分类与首页推荐。 */
     suspend fun homeSort(): AbsSortXml? {
         val viewModel = SourceViewModel()
-        return awaitFirst(viewModel.sortResult) { viewModel.getSort(homeSourceKey()) }
+        return awaitResult(viewModel.sortResult) { viewModel.getSort(homeSourceKey()) }
     }
 
     /** 某个分类指定页的影片（含 page / pagecount）；失败或超时返回 null。 */
     suspend fun categoryPage(sort: MovieSort.SortData, page: Int): Movie? {
         val viewModel = SourceViewModel()
-        return awaitFirst(viewModel.listResult) { viewModel.getList(sort, page) }?.movie
+        return awaitResult(viewModel.listResult) { viewModel.getList(sort, page) }?.movie
     }
 
     /** 某个分类第一页的影片。 */
     suspend fun categoryVideos(sort: MovieSort.SortData): List<Movie.Video> {
         val viewModel = SourceViewModel()
-        val result = awaitFirst(viewModel.listResult) { viewModel.getList(sort, 1) }
+        val result = awaitResult(viewModel.listResult) { viewModel.getList(sort, 1) }
         return result?.movie?.videoList.orEmpty()
     }
 
     /** 影片详情；失败或超时返回 null。 */
     suspend fun detail(sourceKey: String, vodId: String): Movie.Video? {
         val viewModel = SourceViewModel()
-        val result = awaitFirst(viewModel.detailResult) { viewModel.getDetail(sourceKey, vodId) }
+        val result = awaitResult(viewModel.detailResult) { viewModel.getDetail(sourceKey, vodId) }
         return result?.movie?.videoList?.firstOrNull()
     }
 
@@ -121,9 +121,13 @@ object LegacySources {
     }
 
     /** 订阅 LiveData 后发起请求，取第一个结果；超时返回 null。 */
-    private suspend fun <T> awaitFirst(liveData: LiveData<T>, request: () -> Unit): T? =
+    internal suspend fun <T> awaitResult(
+        liveData: LiveData<T>,
+        timeoutMs: Long = REQUEST_TIMEOUT_MS,
+        request: () -> Unit,
+    ): T? =
         withContext(Dispatchers.Main) {
-            withTimeoutOrNull(REQUEST_TIMEOUT_MS) {
+            withTimeoutOrNull(timeoutMs) {
                 suspendCancellableCoroutine { cont ->
                     val observer = object : Observer<T> {
                         override fun onChanged(value: T) {
